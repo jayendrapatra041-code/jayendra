@@ -1,6 +1,7 @@
-import { motion } from 'motion/react';
-import { Mail, Phone, MapPin, Send, Github, Linkedin, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Mail, Phone, MapPin, Send, Github, Linkedin, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useState, FormEvent } from 'react';
+import emailjs from '@emailjs/browser';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -9,11 +10,34 @@ const Contact = () => {
     subject: '',
     message: ''
   });
+  const [status, setStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle');
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const mailtoUrl = `mailto:jayendrapatra041@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`)}`;
-    window.location.href = mailtoUrl;
+    setStatus('sending');
+
+    try {
+      await emailjs.send(
+        'service_5mi9mnq',
+        'template_bhx7u18',
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          to_email: 'jayendrapatra041@gmail.com',
+        },
+        'yYE5HlrBbuY_xhGvA'
+      );
+      
+      setStatus('success');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+      setTimeout(() => setStatus('idle'), 5000);
+    } catch (error) {
+      console.error('EmailJS Error:', error);
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 5000);
+    }
   };
 
   const contactInfos = [
@@ -155,10 +179,52 @@ const Contact = () => {
                 />
               </div>
 
-              <button type="submit" className="btn-primary w-full flex items-center justify-center gap-3 group">
-                Send Message
-                <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+              <button 
+                type="submit" 
+                disabled={status === 'sending'}
+                className="btn-primary w-full flex items-center justify-center gap-3 group disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {status === 'sending' ? (
+                  <>
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                    />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    Send Message
+                    <Send size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </>
+                )}
               </button>
+
+              <AnimatePresence>
+                {status === 'success' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 p-4 rounded-xl border border-emerald-500/20"
+                  >
+                    <CheckCircle2 size={18} />
+                    <span>Message sent successfully! I'll get back to you soon.</span>
+                  </motion.div>
+                )}
+                {status === 'error' && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2 text-rose-400 bg-rose-500/10 p-4 rounded-xl border border-rose-500/20"
+                  >
+                    <AlertCircle size={18} />
+                    <span>Something went wrong. Please try again or email me directly.</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.form>
           </div>
         </div>
